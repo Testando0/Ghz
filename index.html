@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Um Livro Mágico Para Você</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at center, #1a0b2e 0%, #0a0418 70%, #000 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Georgia', serif;
+    overflow: hidden;
+  }
+
+  /* Estrelas */
+  .stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite ease-in-out;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Partículas */
+  .particle {
+    position: fixed;
+    background: radial-gradient(circle, #ffd700, transparent);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatUp 8s infinite ease-in-out;
+    z-index: 1;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.8; }
+    100% { transform: translateY(-100px) translateX(80px); opacity: 0; }
+  }
+
+  /* ===== CONTAINER FIXO DO LIVRO ===== */
+  .book-container {
+    position: relative;
+    width: 95vw;
+    max-width: 1100px;
+    height: 65vh;
+    max-height: 650px;
+    z-index: 10;
+  }
+
+  /* ===== CAPA ===== */
+  .cover {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #4a1d3f 0%, #2a0f28 50%, #1a0818 100%);
+    border-radius: 6px 12px 12px 6px;
+    box-shadow:
+      inset 0 0 80px rgba(0,0,0,0.5),
+      0 20px 60px rgba(0,0,0,0.8),
+      0 0 100px rgba(139, 92, 246, 0.3);
+    border-left: 10px solid #2a0f28;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #f4e4bc;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 1.5s cubic-bezier(0.645, 0.045, 0.355, 1), opacity 1.5s;
+    transform-origin: left center;
+    z-index: 20;
+  }
+
+  .cover.opened {
+    transform: rotateY(-160deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 20px;
+    border: 2px solid rgba(212, 175, 55, 0.35);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .cover-ornament {
+    color: #d4af37;
+    font-size: 26px;
+    letter-spacing: 12px;
+    animation: glow 2s infinite ease-in-out;
+  }
+  .cover-ornament.top { margin-bottom: 25px; }
+  .cover-ornament.bot { margin-top: 25px; }
+
+  @keyframes glow {
+    0%, 100% { text-shadow: 0 0 10px #d4af37, 0 0 20px #d4af37; }
+    50% { text-shadow: 0 0 25px #ffd700, 0 0 50px #ffd700; }
+  }
+
+  .cover-title {
+    font-size: clamp(32px, 5vw, 52px);
+    font-style: italic;
+    color: #f4e4bc;
+    text-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+    margin-bottom: 12px;
+    letter-spacing: 3px;
+  }
+
+  .cover-subtitle {
+    font-size: clamp(13px, 2vw, 18px);
+    color: #d4af37;
+    font-style: italic;
+    margin-bottom: 35px;
+    letter-spacing: 4px;
+  }
+
+  .open-btn {
+    background: transparent;
+    border: 2px solid #d4af37;
+    color: #f4e4bc;
+    padding: 12px 35px;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    font-style: italic;
+    cursor: pointer;
+    border-radius: 30px;
+    letter-spacing: 3px;
+    transition: all 0.4s;
+  }
+  .open-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
+    transform: scale(1.08);
+  }
+
+  /* ===== LIVRO ABERTO (SPREAD) ===== */
+  .book-open {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease 0.8s;
+  }
+
+  .book-open.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Lombada central */
+  .book-open::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.1), rgba(0,0,0,0.4));
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .page-side {
+    flex: 1;
+    height: 100%;
+    background: linear-gradient(135deg, #fdf6e3 0%, #f4e4bc 50%, #e8d5a0 100%);
+    box-shadow:
+      inset 0 0 60px rgba(139, 90, 43, 0.15),
+      0 10px 40px rgba(0,0,0,0.4);
+    padding: clamp(25px, 4vw, 50px) clamp(30px, 5vw, 60px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-side.left {
+    border-radius: 6px 0 0 6px;
+    border-right: 2px solid rgba(139, 90, 43, 0.2);
+  }
+
+  .page-side.right {
+    border-radius: 0 6px 6px 0;
+    border-left: 2px solid rgba(139, 90, 43, 0.2);
+  }
+
+  .page-side::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(139, 90, 43, 0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(139, 90, 43, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .page-text {
+    position: relative;
+    z-index: 2;
+    color: #3a2418;
+    line-height: 1.9;
+    font-size: clamp(14px, 1.5vw, 17px);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.5s;
+  }
+
+  .page-text.fading { opacity: 0; }
+
+  .page-text h1 {
+    font-size: clamp(22px, 2.8vw, 30px);
+    font-style: italic;
+    color: #6b3410;
+    text-align: center;
+    margin-bottom: 18px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.08);
+  }
+
+  .page-text p {
+    margin-bottom: 14px;
+    text-align: justify;
+    text-indent: 28px;
+    font-style: italic;
+  }
+
+  .page-text .signature {
+    text-align: right;
+    margin-top: 18px;
+    font-size: clamp(16px, 1.8vw, 20px);
+    color: #6b3410;
+    font-style: italic;
+    text-indent: 0;
+  }
+
+  .ornament {
+    text-align: center;
+    color: #8b5a2b;
+    font-size: 18px;
+    margin: 12px 0;
+    letter-spacing: 10px;
+  }
+
+  .page-number {
+    position: absolute;
+    bottom: 20px;
+    font-style: italic;
+    color: #8b5a2b;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .page-side.left .page-number { left: 30px; }
+  .page-side.right .page-number { right: 30px; }
+
+  /* ===== NAVEGAÇÃO ===== */
+  .nav-bar {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  .nav-bar.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav-btn {
+    background: rgba(212, 175, 55, 0.15);
+    border: 2px solid #d4af37;
+    color: #f4e4bc;
+    padding: 10px 25px;
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    font-style: italic;
+    cursor: pointer;
+    border-radius: 25px;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+  }
+  .nav-btn:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+    transform: scale(1.05);
+  }
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .page-indicator {
+    color: #f4e4bc;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 2px;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  /* Botão fechar */
+  .close-btn {
+    position: fixed;
+    top: 20px;
+    right: 25px;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    color: #f4e4bc;
+    padding: 10px 22px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s, background 0.3s;
+    z-index: 200;
+    letter-spacing: 1px;
+  }
+  .close-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .close-btn:hover { background: rgba(212, 175, 55, 0.35); }
+
+  @media (max-width: 768px) {
+    .book-container { width: 98vw; height: 75vh; }
+    .page-side { padding: 20px 20px; }
+    .page-text { font-size: 13px; line-height: 1.7; }
+    .page-text p { text-indent: 18px; margin-bottom: 10px; }
+    .nav-bar { gap: 10px; }
+    .nav-btn { padding: 8px 16px; font-size: 12px; }
+    .page-indicator { min-width: 80px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="book-container">
+
+  <!-- CAPA -->
+  <div class="cover" id="cover">
+    <div class="cover-ornament top">✦ ❦ ✦</div>
+    <div class="cover-title">Para Você</div>
+    <div class="cover-subtitle">~ um pequeno livro de memórias ~</div>
+    <button class="open-btn" id="openBtn">✦ Abrir ✦</button>
+    <div class="cover-ornament bot">✦ ❦ ✦</div>
+  </div>
+
+  <!-- LIVRO ABERTO -->
+  <div class="book-open" id="bookOpen">
+    <div class="page-side left">
+      <div class="page-text" id="leftPage"></div>
+      <div class="page-number" id="leftNum"></div>
+    </div>
+    <div class="page-side right">
+      <div class="page-text" id="rightPage"></div>
+      <div class="page-number" id="rightNum"></div>
+    </div>
+  </div>
+
+</div>
+
+<button class="close-btn" id="closeBtn">✦ Fechar o livro ✦</button>
+
+<div class="nav-bar" id="navBar">
+  <button class="nav-btn" id="prevBtn">← Anterior</button>
+  <div class="page-indicator" id="pageIndicator">Página 1</div>
+  <button class="nav-btn" id="nextBtn">Próxima →</button>
+</div>
+
+<script>
+  // ===== Estrelas =====
+  const starsContainer = document.getElementById('stars');
+  for (let i = 0; i < 150; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 3 + 1;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.animationDelay = Math.random() * 3 + 's';
+    star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    starsContainer.appendChild(star);
+  }
+
+  // ===== Partículas =====
+  function createParticle() {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.width = (Math.random() * 4 + 2) + 'px';
+    p.style.height = p.style.width;
+    p.style.animationDuration = (Math.random() * 5 + 5) + 's';
+    p.style.animationDelay = Math.random() * 2 + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 10000);
+  }
+  setInterval(createParticle, 400);
+
+  // ===== Conteúdo das páginas =====
+  // Cada spread tem 2 páginas (esquerda e direita)
+  const spreads = [
+    {
+      left: `
+        <h1>Passar esses dias com você...</h1>
+        <div class="ornament">❦ ✦ ❦</div>
+        <p>Passar esses dias com você foi uma coisa especial para mim — daquelas coisas que a gente sente no peito antes mesmo de conseguir explicar com palavras. Não foi só sobre o tempo que passou, foi sobre como ele passou: devagar, como se o mundo tivesse decidido, só por um instante, respirar no mesmo ritmo que a gente.</p>
+        <p>Eu não sei exatamente em que momento percebi que aqueles dias seriam diferentes. Talvez tenha sido no jeito como você ria de coisas bobas, talvez tenha sido no silêncio confortável que a gente compartilhava sem precisar preencher com conversa.</p>
+      `,
+      right: `
+        <p>Talvez tenha sido só no simples fato de você estar ali — presente, inteiro, inteiro de um jeito que poucos conseguem ser. Tem gente que passa pela nossa vida e deixa marca. Você, nesses dias, deixou algo mais raro: deixou a sensação de que o tempo pode, sim, ser gentil.</p>
+        <p>De que existem manhãs que valem a pena só porque alguém vai estar do outro lado delas. De que café, conversa, caminhada, olhar pela janela — tudo isso vira memória bonita quando é compartilhado com a pessoa certa.</p>
+      `
+    },
+    {
+      left: `
+        <p>Eu guardei cada detalhe. O jeito que você falava, as pausas entre as frases, as coisas que você nem percebeu que disse e que ficaram ecoando na minha cabeça dias depois. Guardei os pequenos gestos — aquele olhar de canto, aquela mão que encostava sem pedir licença, aquele "tchau" que já vinha com saudade de amanhã.</p>
+        <p>Se eu pudesse escolher uma palavra para descrever o que foi viver esses dias ao seu lado, seria <em>leveza</em>. Uma leveza que não é falta de profundidade — é exatamente o contrário. É a profundidade que se permite sorrir.</p>
+      `,
+      right: `
+        <p>É o carinho que não pesa, que não cobra, que só existe porque existe. Obrigado por ter sido você. Obrigado pelos dias, pelas noites, pelos quase-nadas que viraram tudo. Obrigado por me lembrar que a vida, quando bem vivida, cabe inteira em um olhar, em uma risada, em um "fica mais um pouco".</p>
+        <p>Que esses dias não sejam um ponto final, mas uma vírgula. Que a gente ainda tenha muitos outros — iguais, diferentes, melhores, piores, nossos.</p>
+      `
+    },
+    {
+      left: `
+        <p>Que o que a gente construiu nesses dias continue crescendo em silêncio, mesmo quando a distância ou a rotina tentarem dizer o contrário.</p>
+        <p>Porque passar esses dias com você, sinceramente, foi uma das coisas mais especiais que me aconteceram. E eu quero que você saiba disso — hoje, amanhã, e sempre que você precisar lembrar que é importante pra alguém.</p>
+        <div class="ornament">✦ ❦ ✦</div>
+      `,
+      right: `
+        <p style="text-align: center; font-size: 1.3em; margin-top: 30%;">
+          ✦ ✦ ✦<br><br>
+          <em>Com todo o carinho do mundo,</em><br>
+          <em>— de quem não vai esquecer.</em>
+        </p>
+      `
+    }
+  ];
+
+  // ===== Elementos =====
+  const cover = document.getElementById('cover');
+  const openBtn = document.getElementById('openBtn');
+  const bookOpen = document.getElementById('bookOpen');
+  const leftPage = document.getElementById('leftPage');
+  const rightPage = document.getElementById('rightPage');
+  const leftNum = document.getElementById('leftNum');
+  const rightNum = document.getElementById('rightNum');
+  const navBar = document.getElementById('navBar');
+  const closeBtn = document.getElementById('closeBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageIndicator = document.getElementById('pageIndicator');
+
+  let currentSpread = 0;
+  const totalSpreads = spreads.length;
+  let isOpen = false;
+  let isAnimating = false;
+
+  function renderSpread(index) {
+    leftPage.innerHTML = spreads[index].left;
+    rightPage.innerHTML = spreads[index].right;
+    leftNum.textContent = `— ${index * 2 + 1} —`;
+    rightNum.textContent = `— ${index * 2 + 2} —`;
+    pageIndicator.textContent = `Página ${index * 2 + 1} de ${totalSpreads * 2}`;
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === totalSpreads - 1;
+  }
+
+  function changeSpread(dir) {
+    if (isAnimating) return;
+    const newSpread = currentSpread + dir;
+    if (newSpread < 0 || newSpread >= totalSpreads) return;
+
+    isAnimating = true;
+    leftPage.classList.add('fading');
+    rightPage.classList.add('fading');
+
+    setTimeout(() => {
+      currentSpread = newSpread;
+      renderSpread(currentSpread);
+      leftPage.classList.remove('fading');
+      rightPage.classList.remove('fading');
+      setTimeout(() => { isAnimating = false; }, 500);
+    }, 500);
+  }
+
+  function openBook() {
+    if (isOpen) return;
+    isOpen = true;
+    cover.classList.add('opened');
+    renderSpread(0);
+
+    setTimeout(() => {
+      bookOpen.classList.add('visible');
+      navBar.classList.add('visible');
+      closeBtn.classList.add('visible');
+    }, 400);
+  }
+
+  function closeBook() {
+    if (!isOpen) return;
+    isOpen = false;
+    bookOpen.classList.remove('visible');
+    navBar.classList.remove('visible');
+    closeBtn.classList.remove('visible');
+
+    setTimeout(() => {
+      cover.classList.remove('opened');
+      currentSpread = 0;
+    }, 800);
+  }
+
+  // ===== Eventos =====
+  openBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openBook();
+  });
+  cover.addEventListener('click', openBook);
+  closeBtn.addEventListener('click', closeBook);
+  prevBtn.addEventListener('click', () => changeSpread(-1));
+  nextBtn.addEventListener('click', () => changeSpread(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (!isOpen) {
+      if (e.key === 'Enter' || e.key === ' ') openBook();
+      return;
+    }
+    if (e.key === 'ArrowRight') changeSpread(1);
+    if (e.key === 'ArrowLeft') changeSpread(-1);
+    if (e.key === 'Escape') closeBook();
+  });
+</script>
+
+</body>
+  </html>
